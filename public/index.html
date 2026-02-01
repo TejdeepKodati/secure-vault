@@ -58,18 +58,37 @@
 
     <!-- Upload Section -->
 
-<input 
-  type="file" 
+<!-- File Picker -->
+<input
+  type="file"
   id="fileInput"
   multiple
-  webkitdirectory
-  directory
   hidden
 >
 
-<button class="btn upload" onclick="document.getElementById('fileInput').click()">
-  📤 Choose Files / Folder
+<!-- Folder Picker -->
+<input
+  type="file"
+  id="folderInput"
+  webkitdirectory
+  multiple
+  hidden
+>
+
+<button
+  class="btn upload"
+  onclick="document.getElementById('fileInput').click()"
+>
+  📄 Choose Files
 </button>
+
+<button
+  class="btn upload"
+  onclick="document.getElementById('folderInput').click()"
+>
+  📁 Choose Folder
+</button>
+
 
 <button onclick="startUpload()">⬆ Upload</button>
 
