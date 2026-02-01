@@ -321,3 +321,35 @@ td:nth-child(2){
     width:90%;
   }
 }
+.refresh{
+  background:#0f766e;
+}
+/* Upload Progress */
+
+.progress-box{
+  width:100%;
+  background:#020617;
+  border:1px solid #1e293b;
+  border-radius:6px;
+  margin-top:10px;
+  height:20px;
+  position:relative;
+  display:none;
+}
+
+#progressBar{
+  height:100%;
+  width:0%;
+  background:#22c55e;
+  border-radius:6px;
+  transition:0.2s;
+}
+
+#progressText{
+  position:absolute;
+  top:0;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:12px;
+  color:white;
+}

@@ -59,6 +59,11 @@
     <label class="upload-btn">
       Upload Files
       <input type="file" id="fileInput" multiple hidden>
+      <div id="progressBox" class="progress-box">
+  <div id="progressBar"></div>
+  <span id="progressText">0%</span>
+      </div>
+
     </label>
 
     <label class="upload-btn">
@@ -84,6 +89,8 @@
 
     <!-- TOPBAR -->
     <div class="topbar">
+        
+
 
       <div id="actions"></div>
 
@@ -93,6 +100,7 @@
         placeholder="Search..."
         oninput="filterFiles()"
       >
+      <button onclick="refreshFiles()" class="btn refresh">🔄 Refresh</button>
 
     </div>
 

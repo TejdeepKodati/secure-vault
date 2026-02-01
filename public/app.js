@@ -231,28 +231,78 @@ function filterFiles(){
 
 /* ================= UPLOAD ================= */
 
-async function uploadFiles(){
+function uploadFile(){
 
-  const files=document.getElementById("fileInput").files;
+  const input = document.getElementById("fileInput");
 
-  for(let f of files){
+  if(!input.files.length) return;
 
-    const fd=new FormData();
+  const box = document.getElementById("progressBox");
+  const bar = document.getElementById("progressBar");
+  const text = document.getElementById("progressText");
 
-    fd.append("file",f);
+  box.style.display="block";
+  bar.style.width="0%";
+  text.innerText="0%";
 
-    if(currentPath)
-      fd.append("path",currentPath+"/"+f.name);
 
-    await fetch(API+"/upload",{
-      method:"POST",
-      headers:{Authorization:token},
-      body:fd
-    });
+  for(let file of input.files){
+
+    const fd = new FormData();
+
+    fd.append("file",file);
+
+    const path = currentPath
+      ? currentPath+"/"+file.name
+      : file.name;
+
+    fd.append("path",path);
+
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("POST", API+"/upload");
+
+    xhr.setRequestHeader(
+      "Authorization",
+      token
+    );
+
+
+    xhr.upload.onprogress = (e)=>{
+
+      if(e.lengthComputable){
+
+        const p = Math.round(
+          (e.loaded/e.total)*100
+        );
+
+        bar.style.width = p+"%";
+        text.innerText = p+"%";
+      }
+    };
+
+
+    xhr.onload = ()=>{
+
+      if(xhr.status===200){
+
+        bar.style.width="100%";
+        text.innerText="Done ✅";
+
+        setTimeout(()=>{
+          box.style.display="none";
+          loadFiles(currentPath);
+        },800);
+
+      }
+    };
+
+
+    xhr.send(fd);
   }
-
-  loadFiles(currentPath);
 }
+
 
 
 async function uploadFolders(){
@@ -623,5 +673,9 @@ function ctxDelete(){
   selected.clear();
   selected.add(ctxTarget);
   deleteSelected();
+}
+// Manual Refresh
+function refreshFiles(){
+  loadFiles(currentPath);
 }
 
