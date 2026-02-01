@@ -231,77 +231,7 @@ function filterFiles(){
 
 /* ================= UPLOAD ================= */
 
-function uploadFile(){
 
-  const input = document.getElementById("fileInput");
-
-  if(!input.files.length) return;
-
-  const box = document.getElementById("progressBox");
-  const bar = document.getElementById("progressBar");
-  const text = document.getElementById("progressText");
-
-  box.style.display="block";
-  bar.style.width="0%";
-  text.innerText="0%";
-
-
-  for(let file of input.files){
-
-    const fd = new FormData();
-
-    fd.append("file",file);
-
-    const path = currentPath
-      ? currentPath+"/"+file.name
-      : file.name;
-
-    fd.append("path",path);
-
-
-    const xhr = new XMLHttpRequest();
-
-    xhr.open("POST", API+"/upload");
-
-    xhr.setRequestHeader(
-      "Authorization",
-      token
-    );
-
-
-    xhr.upload.onprogress = (e)=>{
-
-      if(e.lengthComputable){
-
-        const p = Math.round(
-          (e.loaded/e.total)*100
-        );
-
-        bar.style.width = p+"%";
-        text.innerText = p+"%";
-      }
-    };
-
-
-    xhr.onload = ()=>{
-
-      if(xhr.status===200){
-
-        bar.style.width="100%";
-        text.innerText="Done ✅";
-
-        setTimeout(()=>{
-          box.style.display="none";
-          loadFiles(currentPath);
-        },800);
-
-      }
-    };
-
-
-    xhr.send(fd);
-  }
-}
 
 
 
@@ -591,30 +521,10 @@ const dropArea = document.getElementById("dropArea");
 
 document.addEventListener("drop", async (e)=>{
 
-  e.preventDefault();
-
   const files = e.dataTransfer.files;
 
-  for(let f of files){
+uploadFiles(files);
 
-    const fd = new FormData();
-
-    fd.append("file",f);
-
-    let path = currentPath
-      ? currentPath+"/"+f.name
-      : f.name;
-
-    fd.append("path",path);
-
-    await fetch(API+"/upload",{
-      method:"POST",
-      headers:{Authorization:token},
-      body:fd
-    });
-  }
-
-  loadFiles(currentPath);
 });
 /* ================= RIGHT CLICK MENU ================= */
 
@@ -679,3 +589,115 @@ function refreshFiles(){
   loadFiles(currentPath);
 }
 
+/* ================= UPLOAD WITH FULL PROGRESS ================= */
+
+async function uploadFile(){
+
+  const input = document.getElementById("fileInput");
+
+  if(!input.files.length) return;
+
+  uploadFiles(input.files);
+}
+
+
+/* Unified uploader */
+async function uploadFiles(files){
+
+  const box = document.getElementById("progressBox");
+  const bar = document.getElementById("progressBar");
+  const text = document.getElementById("progressText");
+  const status = document.getElementById("uploadStatus");
+
+  box.style.display="block";
+  bar.style.width="0%";
+  text.innerText="0%";
+
+
+  let totalSize = 0;
+
+  for(let f of files){
+    totalSize += f.size;
+  }
+
+
+  let uploaded = 0;
+  let done = 0;
+  const total = files.length;
+
+
+  for(let file of files){
+
+    status.innerText =
+      `Uploading ${done+1}/${total} : ${file.name}`;
+
+
+    await uploadSingle(file,(sent)=>{
+
+      uploaded += sent;
+
+      const percent = Math.round(
+        (uploaded / totalSize) * 100
+      );
+
+      bar.style.width = percent+"%";
+      text.innerText = percent+"%";
+    });
+
+    done++;
+  }
+
+
+  status.innerText="Upload Complete ✅";
+  text.innerText="Done";
+
+  setTimeout(()=>{
+    box.style.display="none";
+    status.innerText="";
+    loadFiles(currentPath);
+  },1000);
+}
+
+
+/* Upload one file */
+function uploadSingle(file,onProgress){
+
+  return new Promise((resolve)=>{
+
+    const fd = new FormData();
+
+    fd.append("file",file);
+
+    const path = currentPath
+      ? currentPath+"/"+file.webkitRelativePath || file.name
+      : file.webkitRelativePath || file.name;
+
+    fd.append("path",path);
+
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("POST",API+"/upload");
+
+    xhr.setRequestHeader("Authorization",token);
+
+
+    let last = 0;
+
+    xhr.upload.onprogress = (e)=>{
+
+      if(e.lengthComputable){
+
+        const delta = e.loaded - last;
+        last = e.loaded;
+
+        onProgress(delta);
+      }
+    };
+
+
+    xhr.onload = ()=>resolve();
+
+    xhr.send(fd);
+  });
+}
