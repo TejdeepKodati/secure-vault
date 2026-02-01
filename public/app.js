@@ -231,6 +231,32 @@ function filterFiles(){
 
 /* ================= UPLOAD ================= */
 
+function startUpload(){
+
+  const fileInput = document.getElementById("fileInput");
+  const folderInput = document.getElementById("folderInput");
+
+  let files = [];
+
+  if(fileInput.files.length){
+    files = [...fileInput.files];
+  }
+
+  if(folderInput.files.length){
+    files = files.concat([...folderInput.files]);
+  }
+
+  if(files.length === 0){
+    alert("Select files or folder first!");
+    return;
+  }
+
+  uploadFiles(files);
+
+  // Clear inputs
+  fileInput.value="";
+  folderInput.value="";
+}
 
 
 
@@ -629,7 +655,8 @@ async function uploadFiles(files){
   for(let file of files){
 
     status.innerText =
-      `Uploading ${done+1}/${total} : ${file.name}`;
+  `Uploading ${done+1}/${total} files\n${file.name}`;
+
 
 
     await uploadSingle(file,(sent)=>{
@@ -668,9 +695,12 @@ function uploadSingle(file,onProgress){
 
     fd.append("file",file);
 
-    const path = currentPath
-      ? currentPath+"/"+file.webkitRelativePath || file.name
-      : file.webkitRelativePath || file.name;
+   let rel = file.webkitRelativePath || file.name;
+
+const path = currentPath
+  ? currentPath + "/" + rel
+  : rel;
+
 
     fd.append("path",path);
 

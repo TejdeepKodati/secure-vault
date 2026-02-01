@@ -56,23 +56,32 @@
 
     <hr>
 
-    <label class="upload-btn">
-      Upload Files
-      <input  type="file"  id="fileInput" multiple webkitdirectory directory>
-      <div id="uploadStatus"></div>
-      <div id="progressBox" class="progress-box">
+    <!-- Upload Section -->
+
+<input 
+  type="file" 
+  id="fileInput"
+  multiple
+  webkitdirectory
+  directory
+  hidden
+>
+
+<button class="btn upload" onclick="document.getElementById('fileInput').click()">
+  📤 Choose Files / Folder
+</button>
+
+<button onclick="startUpload()">⬆ Upload</button>
+
+
+
+<div id="uploadStatus"></div>
+
+<div id="progressBox" class="progress-box">
   <div id="progressBar"></div>
   <span id="progressText">0%</span>
-      </div>
+</div>
 
-    </label>
-
-    <label class="upload-btn">
-      Upload Folder
-      <input type="file" id="folderInput" webkitdirectory multiple hidden>
-    </label>
-
-    <button onclick="uploadFiles()">⬆ Upload</button>
 
     <hr>
 
