@@ -245,3 +245,79 @@ td:nth-child(2){
 .menu div:hover{
   background:#1e293b;
 }
+/* ================= MOBILE RESPONSIVE ================= */
+
+@media (max-width: 768px){
+
+  body{
+    font-size:14px;
+  }
+
+  /* Layout */
+
+  .app{
+    flex-direction:column;
+  }
+
+  .sidebar{
+    width:100%;
+    height:auto;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-around;
+    padding:10px;
+  }
+
+  .sidebar button{
+    margin:4px;
+    font-size:13px;
+    padding:6px 10px;
+  }
+
+  .topbar{
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .topbar input{
+    width:100%;
+  }
+
+  /* File Table */
+
+  table{
+    display:block;
+    overflow-x:auto;
+    white-space:nowrap;
+  }
+
+  th,td{
+    padding:8px 6px;
+    font-size:13px;
+  }
+
+  /* Action Bar */
+
+  #actions{
+    flex-wrap:wrap;
+    gap:6px;
+  }
+
+  .btn{
+    padding:8px 12px;
+    font-size:13px;
+  }
+
+  /* Login Box */
+
+  .login-box{
+    width:90%;
+    padding:20px;
+  }
+
+  /* Modals */
+
+  .modal-box{
+    width:90%;
+  }
+}
