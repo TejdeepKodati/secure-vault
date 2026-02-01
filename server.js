@@ -66,7 +66,7 @@ app.post("/login", (req, res) => {
 
   const token = jwt.sign(
     { user: "me" },
-    "SECRETKEY",
+    "process.env.JWT_SECRET",
     { expiresIn: "2h" }
   );
 
@@ -79,7 +79,7 @@ function auth(req, res, next) {
   if (!h) return res.sendStatus(403);
 
   try {
-    jwt.verify(h, "SECRETKEY");
+    jwt.verify(h, "process.env.JWT_SECRET");
     next();
   } catch {
     res.sendStatus(403);
@@ -101,7 +101,7 @@ app.post("/upload", auth, upload.single("file"), (req, res) => {
 
   const encrypted = CryptoJS.AES.encrypt(
     data.toString("base64"),
-    "FILE_SECRET"
+    "process.env.FILE_SECRET"
   ).toString();
 
   fs.writeFileSync(savePath, encrypted);
@@ -153,7 +153,7 @@ app.get("/download", auth, (req, res) => {
 
   const enc = fs.readFileSync(full, "utf8");
 
-  const bytes = CryptoJS.AES.decrypt(enc, "FILE_SECRET");
+  const bytes = CryptoJS.AES.decrypt(enc, "process.env.FILE_SECRET");
 
   const data = Buffer.from(
     bytes.toString(CryptoJS.enc.Utf8),
@@ -200,7 +200,7 @@ app.get("/preview", auth, (req,res)=>{
 
   const enc = fs.readFileSync(full,"utf8");
 
-  const bytes = CryptoJS.AES.decrypt(enc,"FILE_SECRET");
+  const bytes = CryptoJS.AES.decrypt(enc,"process.env.FILE_SECRET");
 
   const buf = Buffer.from(
     bytes.toString(CryptoJS.enc.Utf8),
