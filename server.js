@@ -1,18 +1,4 @@
 require("dotenv").config();
-// Remove empty parent folders
-function cleanEmptyDirs(dir){
-
-  if(dir === DATA_DIR) return;
-
-  if(!fs.existsSync(dir)) return;
-
-  if(fs.readdirSync(dir).length === 0){
-
-    fs.rmdirSync(dir);
-
-    cleanEmptyDirs(path.dirname(dir));
-  }
-}
 
 const express = require("express");
 const multer = require("multer");
@@ -22,41 +8,70 @@ const CryptoJS = require("crypto-js");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
+const AWS = require("aws-sdk");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
+/* ================= AWS S3 ================= */
 
-const DATA_DIR = "vault_data";
-const USER_FILE = "user.json";
-
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
-
-// Storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, DATA_DIR);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "_" + file.originalname);
-  },
+AWS.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION
 });
 
-const upload = multer({ storage });
+const s3 = new AWS.S3();
 
-// Init user
+const BUCKET = process.env.S3_BUCKET;
+
+
+/* ================= CONFIG ================= */
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+const USER_FILE = "user.json";
+
+const SECRET = "SUPER_SECRET_KEY";
+const FILE_SECRET = "FILE_SECRET_KEY";
+
+
+/* ================= INIT USER ================= */
+
 if (!fs.existsSync(USER_FILE)) {
-  const hash = bcrypt.hashSync("1234", 10); // DEFAULT PIN
+
+  const hash = bcrypt.hashSync("1234", 10);
+
   fs.writeFileSync(
     USER_FILE,
     JSON.stringify({ pin: hash }, null, 2)
   );
 }
 
-// Login
+
+/* ================= AUTH ================= */
+
+function auth(req, res, next) {
+
+  const h = req.headers.authorization;
+
+  if (!h) return res.sendStatus(403);
+
+  try {
+    jwt.verify(h, SECRET);
+    next();
+  } catch {
+    res.sendStatus(403);
+  }
+}
+
+
+/* ================= LOGIN ================= */
+
 app.post("/login", (req, res) => {
+
   const { pin } = req.body;
 
   const user = JSON.parse(fs.readFileSync(USER_FILE));
@@ -66,156 +81,145 @@ app.post("/login", (req, res) => {
 
   const token = jwt.sign(
     { user: "me" },
-    "process.env.JWT_SECRET",
-    { expiresIn: "2h" }
+    SECRET,
+    { expiresIn: "6h" }
   );
 
   res.json({ token });
 });
 
-// Auth middleware
-function auth(req, res, next) {
-  const h = req.headers.authorization;
-  if (!h) return res.sendStatus(403);
 
-  try {
-    jwt.verify(h, "process.env.JWT_SECRET");
-    next();
-  } catch {
-    res.sendStatus(403);
-  }
-}
+/* ================= UPLOAD ================= */
 
-// Upload
-// Upload with folders
-app.post("/upload", auth, upload.single("file"), (req, res) => {
+app.post("/upload", auth, upload.single("file"), async (req, res) => {
 
   const relPath = req.body.path || req.file.originalname;
 
-  const savePath = path.join(DATA_DIR, relPath);
-
-  // Create folders if needed
-  fs.mkdirSync(path.dirname(savePath), { recursive:true });
-
-  const data = fs.readFileSync(req.file.path);
+  const data = req.file.buffer.toString("base64");
 
   const encrypted = CryptoJS.AES.encrypt(
-    data.toString("base64"),
-    "process.env.FILE_SECRET"
+    data,
+    FILE_SECRET
   ).toString();
 
-  fs.writeFileSync(savePath, encrypted);
 
-  fs.unlinkSync(req.file.path);
+  await s3.putObject({
 
-  res.json({ msg:"Uploaded & Encrypted" });
+    Bucket: BUCKET,
+    Key: relPath,
+    Body: encrypted,
+    ContentType: "text/plain"
+
+  }).promise();
+
+
+  res.json({ msg: "Uploaded to S3" });
 });
 
 
-// List files
-// List files & folders
-app.get("/files", auth, (req, res) => {
+/* ================= LIST FILES ================= */
+
+app.get("/files", auth, async (req, res) => {
 
   const dir = req.query.path || "";
 
-  const fullPath = path.join(DATA_DIR, dir);
+  const prefix = dir ? dir + "/" : "";
 
-  if(!fs.existsSync(fullPath)){
-    return res.json([]);
+  const data = await s3.listObjectsV2({
+    Bucket: BUCKET,
+    Prefix: prefix,
+    Delimiter: "/"
+  }).promise();
+
+
+  const result = [];
+
+  if (data.CommonPrefixes) {
+    data.CommonPrefixes.forEach(p => {
+      result.push({
+        name: p.Prefix.replace(prefix, "").replace("/", ""),
+        isDir: true
+      });
+    });
   }
 
-  const items = fs.readdirSync(fullPath, { withFileTypes:true });
+  if (data.Contents) {
+    data.Contents.forEach(o => {
 
-  const result = items.map(i=>({
-    name: i.name,
-    isDir: i.isDirectory()
-  }));
+      if (o.Key === prefix) return;
+
+      const name = o.Key.replace(prefix, "");
+
+      if (!name.includes("/")) {
+        result.push({
+          name,
+          isDir: false
+        });
+      }
+    });
+  }
 
   res.json(result);
 });
 
 
-// Download
-// Download file
-app.get("/download", auth, (req, res) => {
+/* ================= DOWNLOAD ================= */
 
-  const filePath = req.query.path;
+app.get("/download", auth, async (req, res) => {
 
-  if(!filePath) return res.sendStatus(400);
+  const key = req.query.path;
 
-  const full = path.join(DATA_DIR, filePath);
+  const obj = await s3.getObject({
+    Bucket: BUCKET,
+    Key: key
+  }).promise();
 
-  if(!fs.existsSync(full)) return res.sendStatus(404);
 
-  if(fs.statSync(full).isDirectory()){
-    return res.status(400).json({ msg:"Folder" });
-  }
-
-  const enc = fs.readFileSync(full, "utf8");
-
-  const bytes = CryptoJS.AES.decrypt(enc, "process.env.FILE_SECRET");
-
-  const data = Buffer.from(
-    bytes.toString(CryptoJS.enc.Utf8),
-    "base64"
+  const bytes = CryptoJS.AES.decrypt(
+    obj.Body.toString(),
+    FILE_SECRET
   );
-
-  res.send(data);
-});
-
-// Change PIN
-app.post("/change-pin", auth, (req,res)=>{
-
-  const { oldPin, newPin } = req.body;
-
-  const user = JSON.parse(fs.readFileSync(USER_FILE));
-
-  if(!bcrypt.compareSync(oldPin, user.pin)){
-    return res.status(401).json({ msg:"Wrong Old PIN" });
-  }
-
-  const hash = bcrypt.hashSync(newPin,10);
-
-  fs.writeFileSync(
-    USER_FILE,
-    JSON.stringify({ pin: hash }, null, 2)
-  );
-
-  res.json({ msg:"PIN Changed" });
-});
-// Preview file
-app.get("/preview", auth, (req,res)=>{
-
-  const p = req.query.path;
-
-  if(!p) return res.sendStatus(400);
-
-  const full = path.join(DATA_DIR,p);
-
-  if(!fs.existsSync(full)) return res.sendStatus(404);
-
-  if(fs.statSync(full).isDirectory()){
-    return res.sendStatus(400);
-  }
-
-  const enc = fs.readFileSync(full,"utf8");
-
-  const bytes = CryptoJS.AES.decrypt(enc,"process.env.FILE_SECRET");
 
   const buf = Buffer.from(
     bytes.toString(CryptoJS.enc.Utf8),
     "base64"
   );
 
-  // Detect type
-  const ext = path.extname(p).toLowerCase();
+  res.send(buf);
+});
+
+
+/* ================= PREVIEW ================= */
+
+app.get("/preview", auth, async (req, res) => {
+
+  const key = req.query.path;
+
+  const obj = await s3.getObject({
+    Bucket: BUCKET,
+    Key: key
+  }).promise();
+
+
+  const bytes = CryptoJS.AES.decrypt(
+    obj.Body.toString(),
+    FILE_SECRET
+  );
+
+  const buf = Buffer.from(
+    bytes.toString(CryptoJS.enc.Utf8),
+    "base64"
+  );
+
+
+  const ext = path.extname(key).toLowerCase();
 
   const map = {
-    ".jpg":"image/jpeg",
-    ".jpeg":"image/jpeg",
-    ".png":"image/png",
-    ".pdf":"application/pdf",
-    ".txt":"text/plain"
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".pdf": "application/pdf",
+    ".txt": "text/plain"
   };
 
   res.setHeader(
@@ -226,81 +230,46 @@ app.get("/preview", auth, (req,res)=>{
   res.send(buf);
 });
 
-// Delete file/folder
-app.delete("/delete", auth, (req,res)=>{
 
-  const p = req.query.path;
+/* ================= DELETE ================= */
 
-  if(!p) return res.sendStatus(400);
+app.delete("/delete", auth, async (req, res) => {
 
-  const full = path.join(DATA_DIR, p);
+  const key = req.query.path;
 
-  if(!fs.existsSync(full)) return res.sendStatus(404);
+  await s3.deleteObject({
+    Bucket: BUCKET,
+    Key: key
+  }).promise();
 
-fs.rmSync(full, { recursive:true, force:true });
-
-cleanEmptyDirs(path.dirname(full));
-
-
-  res.json({ msg:"Deleted" });
-});
-// Rename / Move (auto-create folders)
-app.post("/rename", auth, (req,res)=>{
-
-  const { oldPath, newName } = req.body;
-
-  if(!oldPath || !newName)
-    return res.status(400).json({msg:"Invalid data"});
-
-  const oldFull = path.join(DATA_DIR, oldPath);
-
-  if(!fs.existsSync(oldFull))
-    return res.status(404).json({msg:"Not found"});
-
-  const newFull = path.join(DATA_DIR, newName);
-
-  // Create target folders if missing
-  fs.mkdirSync(path.dirname(newFull), { recursive:true });
-
-  fs.renameSync(oldFull, newFull);
-
-  res.json({ msg:"Done" });
+  res.json({ msg: "Deleted" });
 });
 
 
-// File / Folder Info
-app.get("/info", auth, (req,res)=>{
+/* ================= CHANGE PIN ================= */
 
-  const p = req.query.path;
+app.post("/change-pin", auth, (req, res) => {
 
-  if(!p) return res.sendStatus(400);
+  const { oldPin, newPin } = req.body;
 
-  const full = path.join(DATA_DIR,p);
+  const user = JSON.parse(fs.readFileSync(USER_FILE));
 
-  if(!fs.existsSync(full))
-    return res.sendStatus(404);
+  if (!bcrypt.compareSync(oldPin, user.pin))
+    return res.status(401).json({ msg: "Wrong Old PIN" });
 
-  const stat = fs.statSync(full);
+  const hash = bcrypt.hashSync(newPin, 10);
 
-  res.json({
-    name: path.basename(p),
-    type: stat.isDirectory() ? "Folder" : "File",
-    size: stat.size,
-    created: stat.birthtime
-  });
+  fs.writeFileSync(
+    USER_FILE,
+    JSON.stringify({ pin: hash }, null, 2)
+  );
+
+  res.json({ msg: "PIN Changed" });
 });
-// Empty recycle bin
-app.delete("/empty-trash", auth, (req,res)=>{
 
-  const trash = path.join(DATA_DIR, "__trash__");
 
-  if(fs.existsSync(trash)){
-    fs.rmSync(trash, { recursive:true, force:true });
-  }
-
-  res.json({ msg:"Trash cleared" });
-});
+/* ================= START ================= */
 
 app.listen(3000, () => {
-  console.log("🚀 Server running on http://localhost:3000");
+  console.log("🚀 Secure Vault running with S3");
 });
