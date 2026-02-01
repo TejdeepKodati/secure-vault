@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Secure Vault</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<!-- Context Menu -->
+<div id="menu" class="menu">
+
+  <div onclick="ctxOpen()">Open</div>
+  <div onclick="ctxRename()">Rename</div>
+  <div onclick="ctxMove()">Move</div>
+  <div onclick="ctxDelete()">Delete</div>
+
+</div>
+
+<body class="dark">
+
+<!-- LOGIN -->
+<div class="login" id="loginBox">
+
+  <div class="login-box">
+
+    <h2>🔐 Secure Vault</h2>
+
+    <input
+      type="password"
+      id="pin"
+      placeholder="Enter PIN"
+      onkeydown="if(event.key==='Enter') login()"
+    >
+
+    <button onclick="login()">Login</button>
+
+    <p id="msg"></p>
+
+  </div>
+
+</div>
+
+
+<!-- APP -->
+<div class="app" id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <h2>Vault</h2>
+
+    <button onclick="goHome()">📂 My Files</button>
+    <button onclick="openTrash()">🗑 Recycle Bin</button>
+    <button onclick="emptyTrash()">♻ Empty Bin</button>
+
+
+    <hr>
+
+    <label class="upload-btn">
+      Upload Files
+      <input type="file" id="fileInput" multiple hidden>
+    </label>
+
+    <label class="upload-btn">
+      Upload Folder
+      <input type="file" id="folderInput" webkitdirectory multiple hidden>
+    </label>
+
+    <button onclick="uploadFiles()">⬆ Upload</button>
+
+    <hr>
+
+    <button onclick="toggleTheme()">🌙 Dark/Light</button>
+
+    <button onclick="openProfile()">👤 Profile</button>
+
+    <button onclick="logout()">🚪 Logout</button>
+
+  </div>
+
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+
+      <div id="actions"></div>
+
+      <input
+        type="text"
+        id="search"
+        placeholder="Search..."
+        oninput="filterFiles()"
+      >
+
+    </div>
+
+
+    <!-- CONTENT -->
+    <div class="content" id="dropArea">
+
+
+      <h3 id="path">Home</h3>
+
+      <table>
+
+        <thead>
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="files"></tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- PROFILE MODAL -->
+<div class="modal" id="profile">
+
+  <div class="modal-box">
+
+    <h3>👤 Profile</h3>
+
+    <input type="password" id="oldPin" placeholder="Old PIN">
+    <input type="password" id="newPin" placeholder="New PIN">
+
+    <button onclick="changePin()">Change PIN</button>
+
+    <p id="pinMsg"></p>
+
+    <button onclick="closeProfile()">Close</button>
+
+  </div>
+
+</div>
+
+
+<script src="app.js"></script>
+</body>
+</html>

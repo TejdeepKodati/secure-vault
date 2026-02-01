@@ -1,0 +1,247 @@
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Segoe UI,Arial;
+}
+
+/* THEMES */
+
+body.dark{
+  background:#0f172a;
+  color:white;
+}
+
+body.light{
+  background:#f8fafc;
+  color:black;
+}
+
+
+/* LOGIN */
+
+.login{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.login-box{
+  background:#020617;
+  padding:30px;
+  border-radius:10px;
+  width:280px;
+  text-align:center;
+}
+
+.login-box input{
+  width:100%;
+  padding:10px;
+  margin:15px 0;
+}
+
+
+/* LAYOUT */
+
+.app{
+  display:flex;
+  height:100vh;
+}
+
+
+/* SIDEBAR */
+
+.sidebar{
+  width:220px;
+  background:#020617;
+  padding:20px;
+}
+
+.sidebar h2{
+  margin-bottom:20px;
+  color:#38bdf8;
+}
+
+.sidebar button,
+.upload-btn{
+  width:100%;
+  background:none;
+  border:none;
+  color:white;
+  padding:10px;
+  text-align:left;
+  cursor:pointer;
+}
+
+.sidebar button:hover,
+.upload-btn:hover{
+  background:#1e293b;
+}
+
+.upload-btn{
+  display:block;
+}
+
+
+/* MAIN */
+
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+
+/* TOP */
+
+.topbar{
+  height:60px;
+  background:#020617;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 20px;
+}
+
+.topbar input{
+  padding:7px;
+  width:200px;
+}
+
+
+/* CONTENT */
+
+.content{
+  padding:20px;
+  overflow:auto;
+}
+
+
+/* TABLE */
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  padding:12px;
+  border-bottom:1px solid #1e293b;
+}
+
+tr:hover{
+  background:#1e293b;
+}
+
+td:nth-child(2){
+  cursor:pointer;
+}
+
+
+/* BUTTONS */
+
+.btn{
+  padding:6px 14px;
+  border:none;
+  color:white;
+  cursor:pointer;
+  border-radius:8px;
+  margin-right:6px;
+  font-size:14px;
+  transition:0.2s;
+}
+
+.btn:hover{
+  opacity:0.85;
+  transform:scale(1.05);
+}
+.rename{background:#6366f1}
+.info{background:#0ea5e9}
+.move{background:#7c3aed}
+
+
+.view{background:#0284c7}
+.down{background:#16a34a}
+.del{background:#dc2626}
+.move{background:#7c3aed}
+
+
+/* MODAL */
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-box{
+  background:#020617;
+  padding:25px;
+  width:260px;
+  border-radius:10px;
+  text-align:center;
+}
+
+.modal-box input{
+  width:100%;
+  padding:8px;
+  margin:8px 0;
+}
+/* Login / Profile buttons */
+
+.login-box button,
+.modal-box button{
+  width:100%;
+  padding:10px;
+  background:linear-gradient(to right,#2563eb,#1d4ed8);
+  border:none;
+  color:white;
+  border-radius:8px;
+  cursor:pointer;
+  margin-top:12px;
+  font-size:15px;
+}
+
+.login-box button:hover,
+.modal-box button:hover{
+  opacity:0.9;
+}
+
+
+/* Profile modal */
+
+.modal-box{
+  background:#020617;
+  padding:25px;
+  width:280px;
+  border-radius:12px;
+}
+/* Drag & Drop */
+
+#dropArea.drag{
+  border:2px dashed #38bdf8;
+  background:rgba(56,189,248,0.1);
+}
+/* Right Click Menu */
+
+.menu{
+  position:absolute;
+  background:#020617;
+  border:1px solid #1e293b;
+  display:none;
+  z-index:1000;
+  border-radius:6px;
+}
+
+.menu div{
+  padding:8px 15px;
+  cursor:pointer;
+}
+
+.menu div:hover{
+  background:#1e293b;
+}

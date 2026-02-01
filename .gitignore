@@ -1,0 +1,4 @@
+node_modules/
+vault_data/
+user.json
+.env
