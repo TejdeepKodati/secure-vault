@@ -4,6 +4,7 @@ let selected = new Set();
 let allItems = [];
 let isDark = true;
 let ctxTarget = "";
+const API = location.origin;
 
 
 
@@ -13,7 +14,7 @@ async function login(){
 
   const pin = document.getElementById("pin").value;
 
-  const res = await fetch("http://localhost:3000/login",{
+  const res = await fetch(API+"/login",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({ pin })
@@ -80,7 +81,7 @@ async function loadFiles(path=""){
     path || "Home";
 
   const res = await fetch(
-    `http://localhost:3000/files?path=${path}`,
+    API+`/files?path=${path}`,
     { headers:{ Authorization:token } }
   );
 
@@ -243,7 +244,7 @@ async function uploadFiles(){
     if(currentPath)
       fd.append("path",currentPath+"/"+f.name);
 
-    await fetch("http://localhost:3000/upload",{
+    await fetch(API+"/upload",{
       method:"POST",
       headers:{Authorization:token},
       body:fd
@@ -270,7 +271,7 @@ async function uploadFolders(){
     fd.append("file",f);
     fd.append("path",p);
 
-    await fetch("http://localhost:3000/upload",{
+    await fetch(API+"/upload",{
       method:"POST",
       headers:{Authorization:token},
       body:fd
@@ -338,7 +339,7 @@ async function preview(path,name){
   const p=path?path+"/"+name:name;
 
   const res=await fetch(
-    `http://localhost:3000/preview?path=${p}`,
+    API+`/preview?path=${p}`,
     { headers:{Authorization:token} }
   );
 
@@ -355,7 +356,7 @@ async function download(path,name){
   const p=path?path+"/"+name:name;
 
   const res=await fetch(
-    `http://localhost:3000/download?path=${p}`,
+    API+`/download?path=${p}`,
     { headers:{Authorization:token} }
   );
 
@@ -380,7 +381,7 @@ async function deleteSelected(){
 
     const name=p.split("/").pop();
 
-    await fetch("http://localhost:3000/rename",{
+    await fetch(API+"/rename",{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
@@ -410,7 +411,7 @@ async function moveItem(){
 
   const name=oldPath.split("/").pop();
 
-  await fetch("http://localhost:3000/rename",{
+  await fetch(API+"/rename",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
@@ -437,7 +438,7 @@ async function renameItem(){
 
   if(!name) return;
 
-  await fetch("http://localhost:3000/rename",{
+  await fetch(API+"/rename",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
@@ -461,7 +462,7 @@ async function showInfo(){
   const p=[...selected][0];
 
   const res=await fetch(
-    `http://localhost:3000/info?path=${p}`,
+    API+`/info?path=${p}`,
     { headers:{Authorization:token} }
   );
 
@@ -492,7 +493,7 @@ async function changePin(){
   const oldPin=document.getElementById("oldPin").value;
   const newPin=document.getElementById("newPin").value;
 
-  const res=await fetch("http://localhost:3000/change-pin",{
+  const res=await fetch(API+"/change-pin",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
@@ -510,7 +511,7 @@ async function emptyTrash(){
 
   if(!confirm("Delete ALL files permanently?")) return;
 
-  await fetch("http://localhost:3000/empty-trash",{
+  await fetch(API+"/empty-trash",{
     method:"DELETE",
     headers:{ Authorization:token }
   });
@@ -556,7 +557,7 @@ document.addEventListener("drop", async (e)=>{
 
     fd.append("path",path);
 
-    await fetch("http://localhost:3000/upload",{
+    await fetch(API+"/upload",{
       method:"POST",
       headers:{Authorization:token},
       body:fd
