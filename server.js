@@ -27,12 +27,13 @@ const s3 = new AWS.S3();
 
 const BUCKET = process.env.S3_BUCKET;
 
+const USER_KEY = "__system__/user.json";
 
 /* ================= CONFIG ================= */
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-const USER_FILE = "user.json";
+
 
 const SECRET = "SUPER_SECRET_KEY";
 const FILE_SECRET = "FILE_SECRET_KEY";
@@ -40,15 +41,34 @@ const FILE_SECRET = "FILE_SECRET_KEY";
 
 /* ================= INIT USER ================= */
 
-if (!fs.existsSync(USER_FILE)) {
+async function initUser(){
 
-  const hash = bcrypt.hashSync("1234", 10);
+  try{
 
-  fs.writeFileSync(
-    USER_FILE,
-    JSON.stringify({ pin: hash }, null, 2)
-  );
+    await s3.getObject({
+      Bucket: BUCKET,
+      Key: USER_KEY
+    }).promise();
+
+  }catch{
+
+    const hash = bcrypt.hashSync("1234",10);
+
+    const data = JSON.stringify({ pin: hash });
+
+    await s3.putObject({
+      Bucket: BUCKET,
+      Key: USER_KEY,
+      Body: data,
+      ContentType: "application/json"
+    }).promise();
+
+    console.log("Created default user in S3");
+  }
 }
+
+initUser();
+
 
 
 /* ================= AUTH ================= */
@@ -70,11 +90,17 @@ function auth(req, res, next) {
 
 /* ================= LOGIN ================= */
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
 
   const { pin } = req.body;
 
-  const user = JSON.parse(fs.readFileSync(USER_FILE));
+  const obj = await s3.getObject({
+  Bucket: BUCKET,
+  Key: USER_KEY
+}).promise();
+
+const user = JSON.parse(obj.Body.toString());
+
 
   if (!bcrypt.compareSync(pin, user.pin))
     return res.status(401).json({ msg: "Wrong PIN" });
@@ -248,21 +274,29 @@ app.delete("/delete", auth, async (req, res) => {
 
 /* ================= CHANGE PIN ================= */
 
-app.post("/change-pin", auth, (req, res) => {
+app.post("/change-pin", auth, async (req, res) => {
 
   const { oldPin, newPin } = req.body;
 
-  const user = JSON.parse(fs.readFileSync(USER_FILE));
+  const obj = await s3.getObject({
+  Bucket: BUCKET,
+  Key: USER_KEY
+}).promise();
+
+const user = JSON.parse(obj.Body.toString());
+
 
   if (!bcrypt.compareSync(oldPin, user.pin))
     return res.status(401).json({ msg: "Wrong Old PIN" });
 
   const hash = bcrypt.hashSync(newPin, 10);
 
-  fs.writeFileSync(
-    USER_FILE,
-    JSON.stringify({ pin: hash }, null, 2)
-  );
+  await s3.putObject({
+  Bucket: BUCKET,
+  Key: USER_KEY,
+  Body: JSON.stringify({ pin: hash }),
+  ContentType:"application/json"
+}).promise();
 
   res.json({ msg: "PIN Changed" });
 });
