@@ -381,28 +381,23 @@ async function download(path,name){
 
 async function deleteSelected(){
 
-  if(!confirm("Move to Recycle Bin?")) return;
+  if(!confirm("Delete permanently?")) return;
 
   for(let p of selected){
 
-    const name=p.split("/").pop();
-
-    await fetch(API+"/rename",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        Authorization:token
-      },
-      body:JSON.stringify({
-        oldPath:p,
-        newName:"__trash__/"+name
-      })
-    });
+    await fetch(
+      API + `/delete?path=${encodeURIComponent(p)}`,
+      {
+        method:"DELETE",
+        headers:{ Authorization:token }
+      }
+    );
   }
 
   selected.clear();
   loadFiles(currentPath);
 }
+
 
 
 /* ================= MOVE ================= */
