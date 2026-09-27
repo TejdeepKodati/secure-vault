@@ -1,0 +1,18 @@
+# Runtime data: user record, vault contents, recycle bin, session secret.
+# Never commit this - it contains the PIN hash and every stored file.
+data/
+*.session-secret
+
+# Secrets and environment-specific configuration
+.env
+.env.*
+!.env.example
+
+node_modules/
+npm-debug.log*
+*.log
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
