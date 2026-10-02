@@ -36,17 +36,6 @@ function imageView(entry) {
   return host;
 }
 
-function frameView(entry) {
-  // Same-origin iframe: the HttpOnly session cookie authenticates it, and the
-  // backend deliberately does not sandbox PDFs because that breaks the built-in
-  // viewers in Chrome, Firefox and Safari.
-  return el('iframe', {
-    class: 'pv-frame',
-    src: previewUrl(entry.path),
-    title: `Preview of ${entry.name}`,
-  });
-}
-
 function mediaView(entry, tag) {
   const media = el(tag, { class: 'pv-media', controls: '', preload: 'metadata', src: previewUrl(entry.path) });
   const host = el('div', { class: 'pv' }, [media]);
@@ -72,11 +61,24 @@ async function textView(entry, host, signal) {
 /** Open the preview for one file entry. Folders never reach here. */
 export function openPreview(entry) {
   const kind = CATEGORY_TO_KIND[entry.category];
+
+  // PDFs are opened as a direct top-level navigation instead of inside an
+  // iframe in the modal. Mobile Chromium-based browsers (Chrome, Brave, Edge
+  // on Android) refuse to render a PDF inside an iframe at all - a
+  // deliberate anti-abuse restriction - while desktop allows it, which is
+  // why this used to work on PC and silently fail on phones. A plain
+  // top-level navigation isn't subject to that restriction and renders
+  // natively everywhere, the same as clicking any other PDF link on the web.
+  // The session cookie goes with it automatically; no extra auth needed.
+  if (kind === 'pdf') {
+    window.open(previewUrl(entry.path), '_blank', 'noopener');
+    return;
+  }
+
   const controller = new AbortController();
 
   let body;
   if (kind === 'image') body = imageView(entry);
-  else if (kind === 'pdf') body = frameView(entry);
   else if (kind === 'audio') body = mediaView(entry, 'audio');
   else if (kind === 'video') body = mediaView(entry, 'video');
   else if (kind === 'text') {
@@ -94,7 +96,7 @@ export function openPreview(entry) {
 
   openModal({
     title: entry.name,
-    iconName: kind === 'image' ? 'image' : kind === 'pdf' ? 'pdf' : 'file',
+    iconName: kind === 'image' ? 'image' : 'file',
     wide: true,
     flush: true,
     body,
